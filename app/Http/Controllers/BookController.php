@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BookRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Book;
 
 class BookController extends Controller
@@ -16,23 +18,47 @@ class BookController extends Controller
         return view('createBook');
     }
 
-    function createBook(Request $request){
-        $request->validate([
-            'name' => ['required', 'min:1'],
-            'description' => ['required', 'min:1'],
-            'author' => ['required', 'min:3'],
-            'release_date' => ['required'],
-            'price' => ['required', 'integer', 'min:0']
-        ]);
-        
-        Book::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'author' => $request->author,
-            'release_date' => $request->release_date,
-            'price' => $request->price
-        ]);
-
-        return redirect()->route('books.view');
+    function getUpdateBook($id){
+        $book = Book::find($id);
+        if(empty($book)){
+            return redirect()->route('books.view')->with('error', 'the book data is not found');
+        }
+        return view('updateBook', compact('book'));
     }
+
+    function createBook(BookRequest $request){
+        $validatedData = $request->validated();
+
+        Book::create($validatedData);
+
+        return redirect()->route('books.view')->with('success', 'the newest book data is successfully created');
+    }
+
+    public function updateBook(BookRequest $request, $id){
+        $book = Book::find($id);
+        if(empty($book)){
+            return redirect()->route('books.view')->with('error', 'the book data is not found');
+        }
+        $validatedData = $request->validated();
+        $book->update($validatedData);
+
+        return redirect()->route('books.view')->with('success', 'the book data is successfully updated');
+    }
+
+    public function deleteBook($id){
+        //Book::destroy($id);
+        $book = Book::find($id);
+        if(empty($book)){
+            return redirect()->route('books.view')->with('error', 'the book data is not found');
+        }
+        $book->delete();
+        return redirect()->route('books.view')->with('success', 'the book data is successfully deleted');
+    }
+
+    public function searchBook(Request $request){
+        $books = DB::table('books')->where('name', 'like' , '%' . $request->name . '%')->get();
+
+        return view('welcome', compact('books'));
+    }
+
 }
